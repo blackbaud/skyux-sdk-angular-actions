@@ -180,4 +180,8 @@ async function run(): Promise<void> {
   }
 }
 
-run();
+try {
+  run();
+} catch (err) {
+  core.error(err);
+}
