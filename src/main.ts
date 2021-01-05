@@ -184,6 +184,6 @@ async function run(): Promise<void> {
   try {
     await run();
   } catch (err) {
-    core.error(err);
+    core.setFailed(err);
   }
 })();
