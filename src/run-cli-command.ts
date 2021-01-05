@@ -17,7 +17,7 @@ import {
 export function runAngularCliCommand(
   command: string,
   args: string[] = [],
-  platform = SkyUxCIPlatformConfig.GitHubActions
+  platform = SkyUxCIPlatformConfig.None
 ): Promise<string> {
 
   core.info(`

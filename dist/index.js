@@ -3182,7 +3182,7 @@ const spawn_1 = __webpack_require__(820);
  * @param args Any command line arguments.
  * @param platformConfigKey The name of the CI platform config to use.
  */
-function runAngularCliCommand(command, args = [], platform = "gh-actions" /* GitHubActions */) {
+function runAngularCliCommand(command, args = [], platform = "none" /* None */) {
     core.info(`
 =====================================================
 > Running Angular CLI command: '${command}'
