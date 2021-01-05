@@ -2937,7 +2937,7 @@ function run() {
                 'Tests will run through the local instance of ChromeHeadless.');
             configKey = "none" /* None */;
         }
-        const angularJson = fs.readJsonSync(path.join(process.cwd(), 'angular.json'));
+        const angularJson = fs.readJsonSync(path.join(process.cwd(), core.getInput('working-directory'), 'angular.json'));
         let projectName = '';
         Object.keys(angularJson.projects).find(key => {
             if (angularJson.projects[key].projectType === 'library') {

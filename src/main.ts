@@ -155,7 +155,7 @@ async function run(): Promise<void> {
     configKey = SkyUxCIPlatformConfig.None;
   }
 
-  const angularJson = fs.readJsonSync(path.join(process.cwd(), 'angular.json'));
+  const angularJson = fs.readJsonSync(path.join(process.cwd(), core.getInput('working-directory'), 'angular.json'));
 
   let projectName: string = '';
   Object.keys(angularJson.projects).find(key => {
