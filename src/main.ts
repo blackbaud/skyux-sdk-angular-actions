@@ -78,7 +78,7 @@ async function build() {
     await runLifecycleHook('hook-before-script');
     await runAngularCliCommand('build', ['--prod']);
   } catch (err) {
-    core.setFailed('Build failed.');
+    core.setFailed(err);
     process.exit(1);
   }
 }

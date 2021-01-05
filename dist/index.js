@@ -2858,7 +2858,7 @@ function build() {
             yield run_cli_command_1.runAngularCliCommand('build', ['--prod']);
         }
         catch (err) {
-            core.setFailed('Build failed.');
+            core.setFailed(err);
             process.exit(1);
         }
     });
