@@ -2796,8 +2796,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __webpack_require__(470);
-const path = __webpack_require__(622);
 const fs = __webpack_require__(226);
+const path = __webpack_require__(622);
 const npm_publish_1 = __webpack_require__(96);
 const run_cli_command_1 = __webpack_require__(221);
 const screenshot_comparator_1 = __webpack_require__(453);
@@ -2960,7 +2960,14 @@ function run() {
         }
     });
 }
-run();
+(() => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield run();
+    }
+    catch (err) {
+        core.error(err);
+    }
+}))();
 
 
 /***/ }),
