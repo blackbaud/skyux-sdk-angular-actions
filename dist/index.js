@@ -1478,9 +1478,8 @@ const path = __webpack_require__(622);
 const notify_slack_1 = __webpack_require__(564);
 const spawn_1 = __webpack_require__(820);
 const utils_1 = __webpack_require__(611);
-function npmPublish() {
+function npmPublish(distPath) {
     return __awaiter(this, void 0, void 0, function* () {
-        const distPath = path.join(process.cwd(), core.getInput('working-directory'), 'dist');
         const packageJsonPath = path.join(distPath, 'package.json');
         const packageJson = fs.readJsonSync(packageJsonPath);
         const packageName = packageJson.name;
@@ -2798,8 +2797,9 @@ var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __webpack_require__(470);
 const path = __webpack_require__(622);
+const fs = __webpack_require__(226);
 const npm_publish_1 = __webpack_require__(96);
-const run_skyux_command_1 = __webpack_require__(495);
+const run_cli_command_1 = __webpack_require__(221);
 const screenshot_comparator_1 = __webpack_require__(453);
 const spawn_1 = __webpack_require__(820);
 const utils_1 = __webpack_require__(611);
@@ -2831,7 +2831,7 @@ function runLifecycleHook(name) {
 function installCerts() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            yield run_skyux_command_1.runSkyUxCommand('certs', ['install']);
+            yield spawn_1.spawn('npx', ['-p', '@skyux-sdk/cli', 'skyux', 'certs', 'install']);
         }
         catch (err) {
             core.setFailed('SSL certificates installation failed.');
@@ -2843,7 +2843,7 @@ function install() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield spawn_1.spawn('npm', ['ci']);
-            yield spawn_1.spawn('npm', ['install', '--no-save', '--no-package-lock', 'blackbaud/skyux-sdk-builder-config']);
+            yield spawn_1.spawn('npm', ['install', '--no-save', '--no-package-lock', 'blackbaud/skyux-sdk-pipeline-settings']);
         }
         catch (err) {
             core.setFailed('Packages installation failed.');
@@ -2855,7 +2855,7 @@ function build() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield runLifecycleHook('hook-before-script');
-            yield run_skyux_command_1.runSkyUxCommand('build');
+            yield run_cli_command_1.runAngularCliCommand('build', ['--prod']);
         }
         catch (err) {
             core.setFailed('Build failed.');
@@ -2863,12 +2863,12 @@ function build() {
         }
     });
 }
-function coverage(configKey) {
+function coverage(projectName, configKey) {
     return __awaiter(this, void 0, void 0, function* () {
         core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-coverage`);
         try {
             yield runLifecycleHook('hook-before-script');
-            yield run_skyux_command_1.runSkyUxCommand('test', ['--coverage', 'library'], configKey);
+            yield run_cli_command_1.runAngularCliCommand('test', [projectName], configKey);
         }
         catch (err) {
             core.setFailed('Code coverage failed.');
@@ -2882,7 +2882,7 @@ function visual(configKey) {
         const repository = process.env.GITHUB_REPOSITORY || '';
         try {
             yield runLifecycleHook('hook-before-script');
-            yield run_skyux_command_1.runSkyUxCommand('e2e', [], configKey);
+            yield run_cli_command_1.runAngularCliCommand('e2e', [], configKey);
             if (utils_1.isPush()) {
                 yield screenshot_comparator_1.checkNewBaselineScreenshots(repository, BUILD_ID);
             }
@@ -2896,10 +2896,10 @@ function visual(configKey) {
         }
     });
 }
-function buildLibrary() {
+function buildLibrary(projectName) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            yield run_skyux_command_1.runSkyUxCommand('build-public-library');
+            yield run_cli_command_1.runAngularCliCommand('build', [projectName, '--prod']);
             yield runLifecycleHook('hook-after-build-public-library-success');
         }
         catch (err) {
@@ -2908,9 +2908,10 @@ function buildLibrary() {
         }
     });
 }
-function publishLibrary() {
+function publishLibrary(projectName) {
     return __awaiter(this, void 0, void 0, function* () {
-        npm_publish_1.npmPublish();
+        const distPath = __webpack_require__.ab + "skyux-sdk-angular-actions/" + core.getInput('working-directory') + '/dist/' + projectName;
+        npm_publish_1.npmPublish(distPath);
     });
 }
 function run() {
@@ -2936,18 +2937,26 @@ function run() {
                 'Tests will run through the local instance of ChromeHeadless.');
             configKey = "none" /* None */;
         }
+        const angularJson = fs.readJsonSync(path.join(process.cwd(), 'angular.json'));
+        let projectName = '';
+        Object.keys(angularJson.projects).find(key => {
+            if (angularJson.projects[key].projectType === 'library') {
+                projectName = key;
+                return true;
+            }
+        });
         yield install();
         yield installCerts();
         // Don't run tests for tags.
         if (utils_1.isTag()) {
-            yield buildLibrary();
-            yield publishLibrary();
+            yield buildLibrary(projectName);
+            yield publishLibrary(projectName);
         }
         else {
             yield build();
-            yield coverage(configKey);
+            yield coverage(projectName, configKey);
             yield visual(configKey);
-            yield buildLibrary();
+            yield buildLibrary(projectName);
         }
     });
 }
@@ -3147,6 +3156,46 @@ module.exports = function xhrAdapter(config) {
     request.send(requestData);
   });
 };
+
+
+/***/ }),
+
+/***/ 221:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.runAngularCliCommand = void 0;
+const core = __webpack_require__(470);
+const spawn_1 = __webpack_require__(820);
+/**
+ *
+ * @param command The Angular CLI command to execute.
+ * @param args Any command line arguments.
+ * @param platformConfigKey The name of the CI platform config to use.
+ */
+function runAngularCliCommand(command, args = [], platform = "gh-actions" /* GitHubActions */) {
+    core.info(`
+=====================================================
+> Running Angular CLI command: '${command}'
+=====================================================
+`);
+    if (platform === "none" /* None */) {
+        // Run `ChromeHeadless` since it comes pre-installed on the CI machine.
+        // TODO does this work?
+        // args.push('--headless');
+    }
+    else {
+        args.push('--skyux-ci-platform', platform);
+    }
+    return spawn_1.spawn('npx', [
+        '-p', '@angular/cli',
+        'ng', command,
+        ...args
+    ]);
+}
+exports.runAngularCliCommand = runAngularCliCommand;
 
 
 /***/ }),
@@ -5036,7 +5085,7 @@ module.exports = require("assert");
 /***/ 361:
 /***/ (function(module) {
 
-module.exports = {"_args":[["axios@0.19.2","/Users/stevebr/Projects/github/blackbaud/skyux-sdk-actions"]],"_from":"axios@0.19.2","_id":"axios@0.19.2","_inBundle":false,"_integrity":"sha512-fjgm5MvRHLhx+osE2xoekY70AhARk3a6hkN+3Io1jc00jtquGvxYlKlsFUhmUET0V5te6CcZI7lcv2Ym61mjHA==","_location":"/axios","_phantomChildren":{},"_requested":{"type":"version","registry":true,"raw":"axios@0.19.2","name":"axios","escapedName":"axios","rawSpec":"0.19.2","saveSpec":null,"fetchSpec":"0.19.2"},"_requiredBy":["/@slack/webhook"],"_resolved":"https://registry.npmjs.org/axios/-/axios-0.19.2.tgz","_spec":"0.19.2","_where":"/Users/stevebr/Projects/github/blackbaud/skyux-sdk-actions","author":{"name":"Matt Zabriskie"},"browser":{"./lib/adapters/http.js":"./lib/adapters/xhr.js"},"bugs":{"url":"https://github.com/axios/axios/issues"},"bundlesize":[{"path":"./dist/axios.min.js","threshold":"5kB"}],"dependencies":{"follow-redirects":"1.5.10"},"description":"Promise based HTTP client for the browser and node.js","devDependencies":{"bundlesize":"^0.17.0","coveralls":"^3.0.0","es6-promise":"^4.2.4","grunt":"^1.0.2","grunt-banner":"^0.6.0","grunt-cli":"^1.2.0","grunt-contrib-clean":"^1.1.0","grunt-contrib-watch":"^1.0.0","grunt-eslint":"^20.1.0","grunt-karma":"^2.0.0","grunt-mocha-test":"^0.13.3","grunt-ts":"^6.0.0-beta.19","grunt-webpack":"^1.0.18","istanbul-instrumenter-loader":"^1.0.0","jasmine-core":"^2.4.1","karma":"^1.3.0","karma-chrome-launcher":"^2.2.0","karma-coverage":"^1.1.1","karma-firefox-launcher":"^1.1.0","karma-jasmine":"^1.1.1","karma-jasmine-ajax":"^0.1.13","karma-opera-launcher":"^1.0.0","karma-safari-launcher":"^1.0.0","karma-sauce-launcher":"^1.2.0","karma-sinon":"^1.0.5","karma-sourcemap-loader":"^0.3.7","karma-webpack":"^1.7.0","load-grunt-tasks":"^3.5.2","minimist":"^1.2.0","mocha":"^5.2.0","sinon":"^4.5.0","typescript":"^2.8.1","url-search-params":"^0.10.0","webpack":"^1.13.1","webpack-dev-server":"^1.14.1"},"homepage":"https://github.com/axios/axios","keywords":["xhr","http","ajax","promise","node"],"license":"MIT","main":"index.js","name":"axios","repository":{"type":"git","url":"git+https://github.com/axios/axios.git"},"scripts":{"build":"NODE_ENV=production grunt build","coveralls":"cat coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js","examples":"node ./examples/server.js","fix":"eslint --fix lib/**/*.js","postversion":"git push && git push --tags","preversion":"npm test","start":"node ./sandbox/server.js","test":"grunt test && bundlesize","version":"npm run build && grunt version && git add -A dist && git add CHANGELOG.md bower.json package.json"},"typings":"./index.d.ts","version":"0.19.2"};
+module.exports = {"_args":[["axios@0.19.2","/Users/stevebr/Projects/github/blackbaud/skyux-sdk-angular-actions"]],"_from":"axios@0.19.2","_id":"axios@0.19.2","_inBundle":false,"_integrity":"sha512-fjgm5MvRHLhx+osE2xoekY70AhARk3a6hkN+3Io1jc00jtquGvxYlKlsFUhmUET0V5te6CcZI7lcv2Ym61mjHA==","_location":"/axios","_phantomChildren":{},"_requested":{"type":"version","registry":true,"raw":"axios@0.19.2","name":"axios","escapedName":"axios","rawSpec":"0.19.2","saveSpec":null,"fetchSpec":"0.19.2"},"_requiredBy":["/@slack/webhook"],"_resolved":"https://registry.npmjs.org/axios/-/axios-0.19.2.tgz","_spec":"0.19.2","_where":"/Users/stevebr/Projects/github/blackbaud/skyux-sdk-angular-actions","author":{"name":"Matt Zabriskie"},"browser":{"./lib/adapters/http.js":"./lib/adapters/xhr.js"},"bugs":{"url":"https://github.com/axios/axios/issues"},"bundlesize":[{"path":"./dist/axios.min.js","threshold":"5kB"}],"dependencies":{"follow-redirects":"1.5.10"},"description":"Promise based HTTP client for the browser and node.js","devDependencies":{"bundlesize":"^0.17.0","coveralls":"^3.0.0","es6-promise":"^4.2.4","grunt":"^1.0.2","grunt-banner":"^0.6.0","grunt-cli":"^1.2.0","grunt-contrib-clean":"^1.1.0","grunt-contrib-watch":"^1.0.0","grunt-eslint":"^20.1.0","grunt-karma":"^2.0.0","grunt-mocha-test":"^0.13.3","grunt-ts":"^6.0.0-beta.19","grunt-webpack":"^1.0.18","istanbul-instrumenter-loader":"^1.0.0","jasmine-core":"^2.4.1","karma":"^1.3.0","karma-chrome-launcher":"^2.2.0","karma-coverage":"^1.1.1","karma-firefox-launcher":"^1.1.0","karma-jasmine":"^1.1.1","karma-jasmine-ajax":"^0.1.13","karma-opera-launcher":"^1.0.0","karma-safari-launcher":"^1.0.0","karma-sauce-launcher":"^1.2.0","karma-sinon":"^1.0.5","karma-sourcemap-loader":"^0.3.7","karma-webpack":"^1.7.0","load-grunt-tasks":"^3.5.2","minimist":"^1.2.0","mocha":"^5.2.0","sinon":"^4.5.0","typescript":"^2.8.1","url-search-params":"^0.10.0","webpack":"^1.13.1","webpack-dev-server":"^1.14.1"},"homepage":"https://github.com/axios/axios","keywords":["xhr","http","ajax","promise","node"],"license":"MIT","main":"index.js","name":"axios","repository":{"type":"git","url":"git+https://github.com/axios/axios.git"},"scripts":{"build":"NODE_ENV=production grunt build","coveralls":"cat coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js","examples":"node ./examples/server.js","fix":"eslint --fix lib/**/*.js","postversion":"git push && git push --tags","preversion":"npm test","start":"node ./sandbox/server.js","test":"grunt test && bundlesize","version":"npm run build && grunt version && git add -A dist && git add CHANGELOG.md bower.json package.json"},"typings":"./index.d.ts","version":"0.19.2"};
 
 /***/ }),
 
@@ -6735,7 +6784,7 @@ function commitFailureScreenshots(buildId) {
         yield spawn_1.spawn('git', ['commit', '--message', `Build #${buildId}: Added new failure screenshots. [ci skip]`], config);
         yield spawn_1.spawn('git', ['push', '--force', '--quiet', 'origin', branch], config);
         const url = repoUrl.split('@')[1].replace('.git', '');
-        core.setFailed(`SKY UX visual test failure!\nScreenshots may be viewed at: https://${url}/tree/${branch}`);
+        core.setFailed(`Visual test failure!\nScreenshots may be viewed at: https://${url}/tree/${branch}`);
         process.exit(1);
     });
 }
@@ -9214,46 +9263,6 @@ function resolveCommand(parsed) {
 }
 
 module.exports = resolveCommand;
-
-
-/***/ }),
-
-/***/ 495:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.runSkyUxCommand = void 0;
-const core = __webpack_require__(470);
-const spawn_1 = __webpack_require__(820);
-/**
- *
- * @param command The SKY UX CLI command to execute.
- * @param args Any command line arguments.
- * @param platformConfigKey The name of the CI platform config to use.
- */
-function runSkyUxCommand(command, args = [], platform = "gh-actions" /* GitHubActions */) {
-    core.info(`
-=====================================================
-> Running SKY UX command: '${command}'
-=====================================================
-`);
-    if (platform === "none" /* None */) {
-        // Run `ChromeHeadless` since it comes pre-installed on the CI machine.
-        args.push('--headless');
-    }
-    else {
-        args.push('--platform', platform);
-    }
-    return spawn_1.spawn('npx', [
-        '-p', '@skyux-sdk/cli',
-        'skyux', command,
-        '--logFormat', 'none',
-        ...args
-    ]);
-}
-exports.runSkyUxCommand = runSkyUxCommand;
 
 
 /***/ }),
@@ -13872,7 +13881,7 @@ module.exports = isPlainObject;
 /***/ 698:
 /***/ (function(module) {
 
-module.exports = {"_args":[["@slack/webhook@5.0.3","/Users/stevebr/Projects/github/blackbaud/skyux-sdk-actions"]],"_from":"@slack/webhook@5.0.3","_id":"@slack/webhook@5.0.3","_inBundle":false,"_integrity":"sha512-51vnejJ2zABNumPVukOLyerpHQT39/Lt0TYFtOEz/N2X77bPofOgfPj2atB3etaM07mxWHLT9IRJ4Zuqx38DkQ==","_location":"/@slack/webhook","_phantomChildren":{},"_requested":{"type":"version","registry":true,"raw":"@slack/webhook@5.0.3","name":"@slack/webhook","escapedName":"@slack%2fwebhook","scope":"@slack","rawSpec":"5.0.3","saveSpec":null,"fetchSpec":"5.0.3"},"_requiredBy":["/"],"_resolved":"https://registry.npmjs.org/@slack/webhook/-/webhook-5.0.3.tgz","_spec":"5.0.3","_where":"/Users/stevebr/Projects/github/blackbaud/skyux-sdk-actions","author":{"name":"Slack Technologies, Inc."},"bugs":{"url":"https://github.com/slackapi/node-slack-sdk/issues"},"dependencies":{"@slack/types":"^1.2.1","@types/node":">=8.9.0","axios":"^0.19.0"},"description":"Official library for using the Slack Platform's Incoming Webhooks","devDependencies":{"@types/chai":"^4.1.7","@types/mocha":"^5.2.6","chai":"^4.2.0","codecov":"^3.2.0","mocha":"^6.0.2","nock":"^10.0.6","nyc":"^14.1.1","shx":"^0.3.2","sinon":"^7.2.7","source-map-support":"^0.5.10","ts-node":"^8.0.3","tslint":"^5.13.1","tslint-config-airbnb":"^5.11.1","typescript":"^3.3.3333"},"engines":{"node":">= 8.9.0","npm":">= 5.5.1"},"files":["dist/**/*"],"homepage":"https://slack.dev/node-slack-sdk/webhook","keywords":["slack","request","client","http","api","proxy"],"license":"MIT","main":"dist/index.js","name":"@slack/webhook","publishConfig":{"access":"public"},"repository":{"type":"git","url":"git+https://github.com/slackapi/node-slack-sdk.git"},"scripts":{"build":"npm run build:clean && tsc","build:clean":"shx rm -rf ./dist ./coverage ./.nyc_output","coverage":"codecov -F webhook --root=$PWD","lint":"tslint --project .","prepare":"npm run build","test":"npm run build && nyc mocha --config .mocharc.json src/*.spec.js"},"types":"./dist/index.d.ts","version":"5.0.3"};
+module.exports = {"_args":[["@slack/webhook@5.0.3","/Users/stevebr/Projects/github/blackbaud/skyux-sdk-angular-actions"]],"_from":"@slack/webhook@5.0.3","_id":"@slack/webhook@5.0.3","_inBundle":false,"_integrity":"sha512-51vnejJ2zABNumPVukOLyerpHQT39/Lt0TYFtOEz/N2X77bPofOgfPj2atB3etaM07mxWHLT9IRJ4Zuqx38DkQ==","_location":"/@slack/webhook","_phantomChildren":{},"_requested":{"type":"version","registry":true,"raw":"@slack/webhook@5.0.3","name":"@slack/webhook","escapedName":"@slack%2fwebhook","scope":"@slack","rawSpec":"5.0.3","saveSpec":null,"fetchSpec":"5.0.3"},"_requiredBy":["/"],"_resolved":"https://registry.npmjs.org/@slack/webhook/-/webhook-5.0.3.tgz","_spec":"5.0.3","_where":"/Users/stevebr/Projects/github/blackbaud/skyux-sdk-angular-actions","author":{"name":"Slack Technologies, Inc."},"bugs":{"url":"https://github.com/slackapi/node-slack-sdk/issues"},"dependencies":{"@slack/types":"^1.2.1","@types/node":">=8.9.0","axios":"^0.19.0"},"description":"Official library for using the Slack Platform's Incoming Webhooks","devDependencies":{"@types/chai":"^4.1.7","@types/mocha":"^5.2.6","chai":"^4.2.0","codecov":"^3.2.0","mocha":"^6.0.2","nock":"^10.0.6","nyc":"^14.1.1","shx":"^0.3.2","sinon":"^7.2.7","source-map-support":"^0.5.10","ts-node":"^8.0.3","tslint":"^5.13.1","tslint-config-airbnb":"^5.11.1","typescript":"^3.3.3333"},"engines":{"node":">= 8.9.0","npm":">= 5.5.1"},"files":["dist/**/*"],"homepage":"https://slack.dev/node-slack-sdk/webhook","keywords":["slack","request","client","http","api","proxy"],"license":"MIT","main":"dist/index.js","name":"@slack/webhook","publishConfig":{"access":"public"},"repository":{"type":"git","url":"git+https://github.com/slackapi/node-slack-sdk.git"},"scripts":{"build":"npm run build:clean && tsc","build:clean":"shx rm -rf ./dist ./coverage ./.nyc_output","coverage":"codecov -F webhook --root=$PWD","lint":"tslint --project .","prepare":"npm run build","test":"npm run build && nyc mocha --config .mocharc.json src/*.spec.js"},"types":"./dist/index.d.ts","version":"5.0.3"};
 
 /***/ }),
 

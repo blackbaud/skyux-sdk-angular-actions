@@ -76,7 +76,7 @@ async function commitFailureScreenshots(buildId: string) {
 
   const url = repoUrl.split('@')[1].replace('.git', '');
 
-  core.setFailed(`SKY UX visual test failure!\nScreenshots may be viewed at: https://${url}/tree/${branch}`);
+  core.setFailed(`Visual test failure!\nScreenshots may be viewed at: https://${url}/tree/${branch}`);
   process.exit(1);
 }
 

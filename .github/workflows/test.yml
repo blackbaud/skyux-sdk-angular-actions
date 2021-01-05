@@ -25,7 +25,7 @@ jobs:
       with:
         node-version: '12.x'
     - name: Clone sample project
-      run: git clone https://github.com/blackbaud/skyux-sdk-template-library --branch 4.x.x-test-github-actions --single-branch
+      run: git clone https://github.com/blackbaud/skyux-sdk-angular-actions-test-project
     - name: Run action
       uses: ./
       with:
@@ -35,7 +35,6 @@ jobs:
         npm-token: ${{ secrets.NPM_TOKEN }}
         github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
         slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
-        visual-baselines-branch: 4.x.x-test-github-actions
-        working-directory: ./skyux-sdk-template-library
+        working-directory: ./skyux-sdk-angular-actions-test-project
         hook-after-build-public-library-success: ./scripts/after-build-public-library-success.js
         hook-before-script: ./scripts/before-script.js

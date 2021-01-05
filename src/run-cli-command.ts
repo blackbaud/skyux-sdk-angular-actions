@@ -10,11 +10,11 @@ import {
 
 /**
  *
- * @param command The SKY UX CLI command to execute.
+ * @param command The Angular CLI command to execute.
  * @param args Any command line arguments.
  * @param platformConfigKey The name of the CI platform config to use.
  */
-export function runSkyUxCommand(
+export function runAngularCliCommand(
   command: string,
   args: string[] = [],
   platform = SkyUxCIPlatformConfig.GitHubActions
@@ -22,21 +22,21 @@ export function runSkyUxCommand(
 
   core.info(`
 =====================================================
-> Running SKY UX command: '${command}'
+> Running Angular CLI command: '${command}'
 =====================================================
 `);
 
   if (platform === SkyUxCIPlatformConfig.None) {
     // Run `ChromeHeadless` since it comes pre-installed on the CI machine.
-    args.push('--headless');
+    // TODO does this work?
+    // args.push('--headless');
   } else {
-    args.push('--platform', platform);
+    args.push('--skyux-ci-platform', platform);
   }
 
   return spawn('npx', [
-    '-p', '@skyux-sdk/cli',
-    'skyux', command,
-    '--logFormat', 'none',
+    '-p', '@angular/cli',
+    'ng', command,
     ...args
   ]);
 }
