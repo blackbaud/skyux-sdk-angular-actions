@@ -2868,7 +2868,7 @@ function coverage(projectName, configKey) {
         core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-coverage`);
         try {
             yield runLifecycleHook('hook-before-script');
-            yield run_cli_command_1.runAngularCliCommand('test', [projectName], configKey);
+            yield run_cli_command_1.runAngularCliCommand('test', [projectName, '--skyux-headless'], configKey);
         }
         catch (err) {
             core.setFailed('Code coverage failed.');

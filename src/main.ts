@@ -87,7 +87,7 @@ async function coverage(projectName: string, configKey: SkyUxCIPlatformConfig) {
   core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-coverage`);
   try {
     await runLifecycleHook('hook-before-script');
-    await runAngularCliCommand('test', [projectName], configKey);
+    await runAngularCliCommand('test', [projectName, '--skyux-headless'], configKey);
   } catch (err) {
     core.setFailed('Code coverage failed.');
     process.exit(1);
