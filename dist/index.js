@@ -2863,12 +2863,17 @@ function build() {
         }
     });
 }
-function coverage(projectName, configKey) {
+function coverage(projectName, platformConfigKey) {
     return __awaiter(this, void 0, void 0, function* () {
         core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-coverage`);
         try {
             yield runLifecycleHook('hook-before-script');
-            yield run_cli_command_1.runAngularCliCommand('test', [projectName, '--skyux-headless'], configKey);
+            yield run_cli_command_1.runAngularCliCommand('test', [
+                projectName,
+                '--skyux-ci-platform', platformConfigKey,
+                '--skyux-headless',
+                '--no-watch'
+            ]);
         }
         catch (err) {
             core.setFailed('Code coverage failed.');
@@ -2876,13 +2881,13 @@ function coverage(projectName, configKey) {
         }
     });
 }
-function visual(configKey) {
+function visual(platformConfigKey) {
     return __awaiter(this, void 0, void 0, function* () {
         core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-visual`);
         const repository = process.env.GITHUB_REPOSITORY || '';
         try {
             yield runLifecycleHook('hook-before-script');
-            yield run_cli_command_1.runAngularCliCommand('e2e', [], configKey);
+            yield run_cli_command_1.runAngularCliCommand('e2e', ['--skyux-ci-platform', platformConfigKey]);
             if (utils_1.isPush()) {
                 yield screenshot_comparator_1.checkNewBaselineScreenshots(repository, BUILD_ID);
             }
@@ -3182,20 +3187,12 @@ const spawn_1 = __webpack_require__(820);
  * @param args Any command line arguments.
  * @param platformConfigKey The name of the CI platform config to use.
  */
-function runAngularCliCommand(command, args = [], platform = "none" /* None */) {
+function runAngularCliCommand(command, args = []) {
     core.info(`
 =====================================================
 > Running Angular CLI command: '${command}'
 =====================================================
 `);
-    if (platform === "none" /* None */) {
-        // Run `ChromeHeadless` since it comes pre-installed on the CI machine.
-        // TODO does this work?
-        // args.push('--headless');
-    }
-    else {
-        args.push('--skyux-ci-platform', platform);
-    }
     return spawn_1.spawn('npx', [
         '-p', '@angular/cli',
         'ng', command,

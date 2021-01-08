@@ -1,10 +1,6 @@
 import * as core from '@actions/core';
 
 import {
-  SkyUxCIPlatformConfig
-} from './ci-platform-config';
-
-import {
   spawn
 } from './spawn';
 
@@ -16,8 +12,7 @@ import {
  */
 export function runAngularCliCommand(
   command: string,
-  args: string[] = [],
-  platform = SkyUxCIPlatformConfig.None
+  args: string[] = []
 ): Promise<string> {
 
   core.info(`
@@ -25,15 +20,6 @@ export function runAngularCliCommand(
 > Running Angular CLI command: '${command}'
 =====================================================
 `);
-
-  if (platform === SkyUxCIPlatformConfig.None) {
-    // Run `ChromeHeadless` since it comes pre-installed on the CI machine.
-    // TODO does this work?
-    // args.push('--headless');
-  } else {
-    args.push('--skyux-ci-platform', platform);
-  }
-
   return spawn('npx', [
     '-p', '@angular/cli',
     'ng', command,

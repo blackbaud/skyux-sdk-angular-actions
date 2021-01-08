@@ -83,23 +83,28 @@ async function build() {
   }
 }
 
-async function coverage(projectName: string, configKey: SkyUxCIPlatformConfig) {
+async function coverage(projectName: string, platformConfigKey: SkyUxCIPlatformConfig) {
   core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-coverage`);
   try {
     await runLifecycleHook('hook-before-script');
-    await runAngularCliCommand('test', [projectName, '--skyux-headless'], configKey);
+    await runAngularCliCommand('test', [
+      projectName,
+      '--skyux-ci-platform', platformConfigKey,
+      '--skyux-headless',
+      '--no-watch'
+    ]);
   } catch (err) {
     core.setFailed('Code coverage failed.');
     process.exit(1);
   }
 }
 
-async function visual(configKey: SkyUxCIPlatformConfig) {
+async function visual(platformConfigKey: SkyUxCIPlatformConfig) {
   core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-visual`);
   const repository = process.env.GITHUB_REPOSITORY || '';
   try {
     await runLifecycleHook('hook-before-script');
-    await runAngularCliCommand('e2e', [], configKey);
+    await runAngularCliCommand('e2e', ['--skyux-ci-platform', platformConfigKey]);
     if (isPush()) {
       await checkNewBaselineScreenshots(repository, BUILD_ID);
     }
