@@ -3,10 +3,6 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 
 import {
-  SkyUxCIPlatformConfig
-} from './ci-platform-config';
-
-import {
   npmPublish
 } from './npm-publish';
 
@@ -83,28 +79,37 @@ async function build() {
   }
 }
 
-async function coverage(projectName: string, platformConfigKey: SkyUxCIPlatformConfig) {
+async function coverage(projectName: string, isCallerTrusted = false) {
   core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-coverage`);
+
+  const args: string[] = [
+    projectName,
+    '--skyux-headless',
+    '--no-watch'
+  ];
+
+  if (isCallerTrusted) {
+    args.concat(['--skyux-ci-platform', 'gh-actions']);
+  }
+
   try {
     await runLifecycleHook('hook-before-script');
-    await runAngularCliCommand('test', [
-      projectName,
-      '--skyux-ci-platform', platformConfigKey,
-      '--skyux-headless',
-      '--no-watch'
-    ]);
+    await runAngularCliCommand('test', args);
   } catch (err) {
     core.setFailed('Code coverage failed.');
     process.exit(1);
   }
 }
 
-async function visual(platformConfigKey: SkyUxCIPlatformConfig) {
+async function visual(isCallerTrusted = false) {
   core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-visual`);
   const repository = process.env.GITHUB_REPOSITORY || '';
+  const args = (isCallerTrusted) ? ['--skyux-ci-platform', 'gh-actions'] : [];
+
   try {
     await runLifecycleHook('hook-before-script');
-    await runAngularCliCommand('e2e', ['--skyux-ci-platform', platformConfigKey]);
+    await runAngularCliCommand('e2e', args);
+
     if (isPush()) {
       await checkNewBaselineScreenshots(repository, BUILD_ID);
     }
@@ -151,13 +156,13 @@ async function run(): Promise<void> {
   core.exportVariable('BROWSER_STACK_USERNAME', core.getInput('browser-stack-username'));
   core.exportVariable('BROWSER_STACK_PROJECT', core.getInput('browser-stack-project') || process.env.GITHUB_REPOSITORY);
 
-  let configKey = SkyUxCIPlatformConfig.GitHubActions;
+  let isCallerTrusted = true;
   if (!core.getInput('browser-stack-access-key')) {
     core.warning(
       'BrowserStack credentials could not be found. ' +
       'Tests will run through the local instance of ChromeHeadless.'
     );
-    configKey = SkyUxCIPlatformConfig.None;
+    isCallerTrusted = false;
   }
 
   const angularJson = fs.readJsonSync(path.join(process.cwd(), core.getInput('working-directory'), 'angular.json'));
@@ -179,8 +184,8 @@ async function run(): Promise<void> {
     await publishLibrary(projectName);
   } else {
     await build();
-    await coverage(projectName, configKey);
-    await visual(configKey);
+    await coverage(projectName, isCallerTrusted);
+    await visual(isCallerTrusted);
     await buildLibrary(projectName);
   }
 }

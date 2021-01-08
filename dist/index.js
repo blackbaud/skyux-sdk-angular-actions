@@ -2863,17 +2863,20 @@ function build() {
         }
     });
 }
-function coverage(projectName, platformConfigKey) {
+function coverage(projectName, isCallerTrusted = false) {
     return __awaiter(this, void 0, void 0, function* () {
         core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-coverage`);
+        const args = [
+            projectName,
+            '--skyux-headless',
+            '--no-watch'
+        ];
+        if (isCallerTrusted) {
+            args.concat(['--skyux-ci-platform', 'gh-actions']);
+        }
         try {
             yield runLifecycleHook('hook-before-script');
-            yield run_cli_command_1.runAngularCliCommand('test', [
-                projectName,
-                '--skyux-ci-platform', platformConfigKey,
-                '--skyux-headless',
-                '--no-watch'
-            ]);
+            yield run_cli_command_1.runAngularCliCommand('test', args);
         }
         catch (err) {
             core.setFailed('Code coverage failed.');
@@ -2881,13 +2884,14 @@ function coverage(projectName, platformConfigKey) {
         }
     });
 }
-function visual(platformConfigKey) {
+function visual(isCallerTrusted = false) {
     return __awaiter(this, void 0, void 0, function* () {
         core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-visual`);
         const repository = process.env.GITHUB_REPOSITORY || '';
+        const args = (isCallerTrusted) ? ['--skyux-ci-platform', 'gh-actions'] : [];
         try {
             yield runLifecycleHook('hook-before-script');
-            yield run_cli_command_1.runAngularCliCommand('e2e', ['--skyux-ci-platform', platformConfigKey]);
+            yield run_cli_command_1.runAngularCliCommand('e2e', args);
             if (utils_1.isPush()) {
                 yield screenshot_comparator_1.checkNewBaselineScreenshots(repository, BUILD_ID);
             }
@@ -2936,11 +2940,11 @@ function run() {
         core.exportVariable('BROWSER_STACK_ACCESS_KEY', core.getInput('browser-stack-access-key'));
         core.exportVariable('BROWSER_STACK_USERNAME', core.getInput('browser-stack-username'));
         core.exportVariable('BROWSER_STACK_PROJECT', core.getInput('browser-stack-project') || process.env.GITHUB_REPOSITORY);
-        let configKey = "gh-actions" /* GitHubActions */;
+        let isCallerTrusted = true;
         if (!core.getInput('browser-stack-access-key')) {
             core.warning('BrowserStack credentials could not be found. ' +
                 'Tests will run through the local instance of ChromeHeadless.');
-            configKey = "none" /* None */;
+            isCallerTrusted = false;
         }
         const angularJson = fs.readJsonSync(path.join(process.cwd(), core.getInput('working-directory'), 'angular.json'));
         let projectName = '';
@@ -2959,8 +2963,8 @@ function run() {
         }
         else {
             yield build();
-            yield coverage(projectName, configKey);
-            yield visual(configKey);
+            yield coverage(projectName, isCallerTrusted);
+            yield visual(isCallerTrusted);
             yield buildLibrary(projectName);
         }
     });
