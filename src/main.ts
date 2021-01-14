@@ -64,7 +64,7 @@ async function install(): Promise<void> {
     await spawn('npm', ['ci']);
     await spawn('npm', ['install', '--no-save', '--no-package-lock', 'blackbaud/skyux-sdk-pipeline-settings']);
   } catch (err) {
-    core.setFailed('Packages installation failed.');
+    core.setFailed('Pipeline settings installation failed.');
     process.exit(1);
   }
 }
@@ -84,7 +84,7 @@ async function coverage(projectName: string, isCallerTrusted = false) {
 
   const args: string[] = [
     projectName,
-    '--skyux-headless',
+    '--browsers', 'ChromeHeadless',
     '--no-watch'
   ];
 
@@ -103,8 +103,12 @@ async function coverage(projectName: string, isCallerTrusted = false) {
 
 async function visual(isCallerTrusted = false) {
   core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-visual`);
+
   const repository = process.env.GITHUB_REPOSITORY || '';
-  const args = (isCallerTrusted) ? ['--skyux-ci-platform', 'gh-actions'] : [];
+
+  const args = (isCallerTrusted)
+    ? ['--skyux-ci-platform', 'gh-actions']
+    : ['--skyux-headless'];
 
   try {
     await runLifecycleHook('hook-before-script');
