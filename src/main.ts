@@ -79,40 +79,34 @@ async function build() {
   }
 }
 
-async function coverage(projectName: string, isCallerTrusted = false) {
+async function coverage(projectName: string) {
   core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-coverage`);
-
-  const args: string[] = [
-    projectName,
-    '--browsers', 'ChromeHeadless',
-    '--no-watch'
-  ];
-
-  if (isCallerTrusted) {
-    args.concat(['--skyux-ci-platform', 'gh-actions']);
-  }
 
   try {
     await runLifecycleHook('hook-before-script');
-    await runAngularCliCommand('test', args);
+    await runAngularCliCommand('test', [
+      projectName,
+      '--browsers', 'ChromeHeadless',
+      '--no-watch',
+      '--skyux-ci-platform', 'gh-actions'
+    ]);
   } catch (err) {
     core.setFailed('Code coverage failed.');
     process.exit(1);
   }
 }
 
-async function visual(isCallerTrusted = false) {
+async function visual() {
   core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-visual`);
 
   const repository = process.env.GITHUB_REPOSITORY || '';
 
-  const args = (isCallerTrusted)
-    ? ['--skyux-ci-platform', 'gh-actions']
-    : ['--skyux-headless'];
-
   try {
     await runLifecycleHook('hook-before-script');
-    await runAngularCliCommand('e2e', args);
+    await runAngularCliCommand('e2e', [
+      '--skyux-ci-platform', 'gh-actions',
+      '--skyux-headless'
+    ]);
 
     if (isPush()) {
       await checkNewBaselineScreenshots(repository, BUILD_ID);
@@ -160,13 +154,11 @@ async function run(): Promise<void> {
   core.exportVariable('BROWSER_STACK_USERNAME', core.getInput('browser-stack-username'));
   core.exportVariable('BROWSER_STACK_PROJECT', core.getInput('browser-stack-project') || process.env.GITHUB_REPOSITORY);
 
-  let isCallerTrusted = true;
   if (!core.getInput('browser-stack-access-key')) {
     core.warning(
       'BrowserStack credentials could not be found. ' +
       'Tests will run through the local instance of ChromeHeadless.'
     );
-    isCallerTrusted = false;
   }
 
   const angularJson = fs.readJsonSync(path.join(process.cwd(), core.getInput('working-directory'), 'angular.json'));
@@ -188,8 +180,8 @@ async function run(): Promise<void> {
     await publishLibrary(projectName);
   } else {
     await build();
-    await coverage(projectName, isCallerTrusted);
-    await visual(isCallerTrusted);
+    await coverage(projectName);
+    await visual();
     await buildLibrary(projectName);
   }
 }
