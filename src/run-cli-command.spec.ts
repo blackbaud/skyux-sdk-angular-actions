@@ -29,14 +29,4 @@ describe('Run SKY UX command', () => {
     ]);
   });
 
-  // it('should allow unsetting the `platform` argument', async () => {
-  //   await runAngularCliCommand('test', []);
-  //   expect(spawnSpy).toHaveBeenCalledWith('npx', [
-  //     '-p', '@skyux-sdk/cli',
-  //     'skyux', 'test',
-  //     '--logFormat', 'none',
-  //     '--headless'
-  //   ]);
-  // });
-
 });
