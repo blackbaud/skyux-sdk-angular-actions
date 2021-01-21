@@ -760,7 +760,6 @@ module.exports.makeDirSync = (input, options) => {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.httpErrorWithOriginal = exports.requestErrorWithOriginal = exports.ErrorCode = void 0;
 /**
  * A dictionary of codes for errors produced by this package
  */
@@ -4372,7 +4371,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.IncomingWebhook = void 0;
 const axios_1 = __importDefault(__webpack_require__(53));
 const errors_1 = __webpack_require__(58);
 const instrument_1 = __webpack_require__(441);
@@ -5939,27 +5937,14 @@ function escapeProperty(s) {
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserAgent = exports.addAppMetadata = void 0;
 const os = __importStar(__webpack_require__(87));
 const packageJson = __webpack_require__(698); // tslint:disable-line:no-require-imports no-var-requires
 /**
@@ -8562,13 +8547,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifySlack = void 0;
 const core = __webpack_require__(470);
-const slack = __webpack_require__(736);
+const webhook_1 = __webpack_require__(736);
 function notifySlack(message) {
     return __awaiter(this, void 0, void 0, function* () {
         const url = core.getInput('slack-webhook');
         if (url) {
             core.info('Notifying Slack.');
-            const webhook = new slack.IncomingWebhook(url);
+            const webhook = new webhook_1.IncomingWebhook(url);
             yield webhook.send({
                 text: message
             });
@@ -11911,7 +11896,7 @@ module.exports = isPlainObject;
 /***/ 698:
 /***/ (function(module) {
 
-module.exports = {"_from":"@slack/webhook@6.0.0","_id":"@slack/webhook@6.0.0","_inBundle":false,"_integrity":"sha512-2fohfhLI9lkAmOSWt1R457JBsB3iFNqahu4GqdFZRtcp/bT+xeG/kPn/hQa78JS74poRjWTt5G/qJjNaWMGOEQ==","_location":"/@slack/webhook","_phantomChildren":{},"_requested":{"type":"version","registry":true,"raw":"@slack/webhook@6.0.0","name":"@slack/webhook","escapedName":"@slack%2fwebhook","scope":"@slack","rawSpec":"6.0.0","saveSpec":null,"fetchSpec":"6.0.0"},"_requiredBy":["/"],"_resolved":"https://registry.npmjs.org/@slack/webhook/-/webhook-6.0.0.tgz","_shasum":"844593c1e864a966e549f60bb640586628f3c1c4","_spec":"@slack/webhook@6.0.0","_where":"/Users/stevebr/Projects/github/blackbaud/skyux-sdk-angular-actions","author":{"name":"Slack Technologies, Inc."},"bugs":{"url":"https://github.com/slackapi/node-slack-sdk/issues"},"bundleDependencies":false,"dependencies":{"@slack/types":"^1.2.1","@types/node":">=12.0.0","axios":"^0.21.1"},"deprecated":false,"description":"Official library for using the Slack Platform's Incoming Webhooks","devDependencies":{"@microsoft/api-extractor":"^7.3.4","@types/chai":"^4.1.7","@types/mocha":"^5.2.6","chai":"^4.2.0","codecov":"^3.2.0","mocha":"^6.0.2","nock":"^10.0.6","nyc":"^14.1.1","shx":"^0.3.2","sinon":"^7.2.7","source-map-support":"^0.5.10","ts-node":"^8.0.3","tslint":"^5.13.1","tslint-config-airbnb":"^5.11.1","typescript":"^4.1.0"},"engines":{"node":">= 12.13.0","npm":">= 6.12.0"},"files":["dist/**/*"],"homepage":"https://slack.dev/node-slack-sdk/webhook","keywords":["slack","request","client","http","api","proxy"],"license":"MIT","main":"dist/index.js","name":"@slack/webhook","publishConfig":{"access":"public"},"repository":{"type":"git","url":"git+https://github.com/slackapi/node-slack-sdk.git"},"scripts":{"build":"npm run build:clean && tsc","build:clean":"shx rm -rf ./dist ./coverage ./.nyc_output","coverage":"codecov -F webhook --root=$PWD","lint":"tslint --project .","prepare":"npm run build","ref-docs:model":"api-extractor run","test":"npm run build && nyc mocha --config .mocharc.json src/*.spec.js"},"types":"./dist/index.d.ts","version":"6.0.0"};
+module.exports = {"_from":"@slack/webhook@5.0.4","_id":"@slack/webhook@5.0.4","_inBundle":false,"_integrity":"sha512-IC1dpVSc2F/pmwCxOb0QzH2xnGKmyT7MofPGhNkeaoiMrLMU+Oc7xV/AxGnz40mURtCtaDchZSM3tDo9c9x6BA==","_location":"/@slack/webhook","_phantomChildren":{},"_requested":{"type":"version","registry":true,"raw":"@slack/webhook@5.0.4","name":"@slack/webhook","escapedName":"@slack%2fwebhook","scope":"@slack","rawSpec":"5.0.4","saveSpec":null,"fetchSpec":"5.0.4"},"_requiredBy":["/"],"_resolved":"https://registry.npmjs.org/@slack/webhook/-/webhook-5.0.4.tgz","_shasum":"5d3e947387c1d0ccb176a153cec68c594edb7060","_spec":"@slack/webhook@5.0.4","_where":"/Users/stevebr/Projects/github/blackbaud/skyux-sdk-angular-actions","author":{"name":"Slack Technologies, Inc."},"bugs":{"url":"https://github.com/slackapi/node-slack-sdk/issues"},"bundleDependencies":false,"dependencies":{"@slack/types":"^1.2.1","@types/node":">=8.9.0","axios":"^0.21.1"},"deprecated":false,"description":"Official library for using the Slack Platform's Incoming Webhooks","devDependencies":{"@microsoft/api-extractor":"^7.3.4","@types/chai":"^4.1.7","@types/mocha":"^5.2.6","chai":"^4.2.0","codecov":"^3.2.0","mocha":"^6.0.2","nock":"^10.0.6","nyc":"^14.1.1","shx":"^0.3.2","sinon":"^7.2.7","source-map-support":"^0.5.10","ts-node":"^8.0.3","tslint":"^5.13.1","tslint-config-airbnb":"^5.11.1","typescript":"^3.3.3333"},"engines":{"node":">= 8.9.0","npm":">= 5.5.1"},"files":["dist/**/*"],"homepage":"https://slack.dev/node-slack-sdk/webhook","keywords":["slack","request","client","http","api","proxy"],"license":"MIT","main":"dist/index.js","name":"@slack/webhook","publishConfig":{"access":"public"},"repository":{"type":"git","url":"git+https://github.com/slackapi/node-slack-sdk.git"},"scripts":{"build":"npm run build:clean && tsc","build:clean":"shx rm -rf ./dist ./coverage ./.nyc_output","coverage":"codecov -F webhook --root=$PWD","lint":"tslint --project .","prepare":"npm run build","ref-docs:model":"api-extractor run","test":"npm run build && nyc mocha --config .mocharc.json src/*.spec.js"},"types":"./dist/index.d.ts","version":"5.0.4"};
 
 /***/ }),
 
@@ -13631,11 +13616,10 @@ module.exports = function isCancel(value) {
 
 /// <reference lib="es2017" />
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ErrorCode = exports.IncomingWebhook = void 0;
 var IncomingWebhook_1 = __webpack_require__(337);
-Object.defineProperty(exports, "IncomingWebhook", { enumerable: true, get: function () { return IncomingWebhook_1.IncomingWebhook; } });
+exports.IncomingWebhook = IncomingWebhook_1.IncomingWebhook;
 var errors_1 = __webpack_require__(58);
-Object.defineProperty(exports, "ErrorCode", { enumerable: true, get: function () { return errors_1.ErrorCode; } });
+exports.ErrorCode = errors_1.ErrorCode;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
