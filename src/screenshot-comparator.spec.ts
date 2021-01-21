@@ -80,7 +80,7 @@ describe('screenshot comparator', () => {
       });
       expect(infoSpy).toHaveBeenCalledWith('New screenshots detected.');
       expect(infoSpy).toHaveBeenCalledWith('Preparing to commit failure screenshots to the \'build-id\' branch.');
-      expect(failedLogSpy).toHaveBeenCalledWith('SKY UX visual test failure!\nScreenshots may be viewed at: https://github.com/blackbaud/skyux-visual-test-results/tree/build-id');
+      expect(failedLogSpy).toHaveBeenCalledWith('Visual test failure!\nScreenshots may be viewed at: https://github.com/blackbaud/skyux-visual-test-results/tree/build-id');
       done();
     });
 

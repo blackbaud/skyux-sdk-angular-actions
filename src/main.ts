@@ -103,10 +103,7 @@ async function visual() {
 
   try {
     await runLifecycleHook('hook-before-script');
-    await runAngularCliCommand('e2e', [
-      '--skyux-ci-platform', 'gh-actions',
-      '--skyux-headless'
-    ]);
+    await runAngularCliCommand('e2e', ['--skyux-ci-platform', 'gh-actions']);
 
     if (isPush()) {
       await checkNewBaselineScreenshots(repository, BUILD_ID);
@@ -131,7 +128,13 @@ async function buildLibrary(projectName: string) {
 }
 
 async function publishLibrary(projectName: string) {
-  const distPath = path.join(process.cwd(), core.getInput('working-directory'), 'dist', projectName);
+  const distPath = path.join(
+    process.cwd(),
+    core.getInput('working-directory'),
+    'dist',
+    projectName
+  );
+
   npmPublish(distPath);
 }
 
