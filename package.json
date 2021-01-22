@@ -1,30 +1,29 @@
 {
-  "name": "skyux-sdk-actions",
+  "name": "skyux-sdk-angular-actions",
   "version": "1.0.0",
-  "description": "GitHub actions for SKY UX libraries.",
+  "description": "GitHub Actions for Angular CLI libraries",
   "main": "lib/main.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && ncc build",
     "lint": "./node_modules/.bin/tslint --project tsconfig.json",
-    "pack": "ncc build",
     "test": "npm run lint && nyc ts-node node_modules/jasmine/bin/jasmine --config=jasmine.json"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/blackbaud/skyux-sdk-actions.git"
+    "url": "git+https://github.com/blackbaud/skyux-sdk-angular-actions.git"
   },
   "author": "Blackbaud, Inc.",
   "license": "MIT",
   "dependencies": {
     "@actions/core": "1.2.6",
     "@actions/github": "4.0.0",
-    "@slack/webhook": "5.0.3"
+    "@slack/webhook": "5.0.4"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "1.0.1",
     "@types/cross-spawn": "6.0.2",
-    "@types/fs-extra": "9.0.2",
-    "@types/jasmine": "3.5.14",
+    "@types/fs-extra": "9.0.6",
+    "@types/jasmine": "3.6.2",
     "@types/rimraf": "3.0.0",
     "@zeit/ncc": "0.22.3",
     "cross-spawn": "7.0.3",

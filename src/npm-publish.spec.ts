@@ -26,9 +26,7 @@ describe('npmPublish', () => {
     mockNpmDryRun = 'false';
 
     spyOn(core, 'getInput').and.callFake((key: string) => {
-      if (key === 'working-directory') {
-        return 'MOCK_WORKING_DIRECTORY';
-      } else if (key === 'npm-token') {
+      if (key === 'npm-token') {
         return 'MOCK_TOKEN';
       } else if (key === 'npm-dry-run') {
         return mockNpmDryRun;
@@ -59,10 +57,10 @@ describe('npmPublish', () => {
   });
 
   it('should publish to NPM', async (done: DoneFn) => {
-    await npmPublish();
+    await npmPublish('/dist');
 
     expect(writeSpy).toHaveBeenCalledWith(
-      `${path.join(process.cwd(), core.getInput('working-directory'), 'dist', '.npmrc')}`,
+      path.join('/dist', '.npmrc'),
       '//registry.npmjs.org/:_authToken=MOCK_TOKEN'
     );
 
@@ -72,7 +70,7 @@ describe('npmPublish', () => {
       'npm',
       ['publish', '--access', 'public', '--tag', 'latest'],
       {
-        cwd: path.join(process.cwd(), core.getInput('working-directory'), 'dist'),
+        cwd: '/dist',
         stdio: 'inherit'
       }
     );
@@ -84,13 +82,13 @@ describe('npmPublish', () => {
     getTagSpy.and.callThrough();
     getTagSpy.and.returnValue('1.0.0-rc.0');
 
-    await npmPublish();
+    await npmPublish('/dist');
 
     expect(spawnSpy).toHaveBeenCalledWith(
       'npm',
       ['publish', '--access', 'public', '--tag', 'next'],
       {
-        cwd: path.join(process.cwd(), core.getInput('working-directory'), 'dist'),
+        cwd: '/dist',
         stdio: 'inherit'
       }
     );
@@ -101,13 +99,13 @@ describe('npmPublish', () => {
   it('should allow running `npm publish --dry-run`', async (done: DoneFn) => {
     mockNpmDryRun = 'true';
 
-    await npmPublish();
+    await npmPublish('/dist');
 
     expect(spawnSpy).toHaveBeenCalledWith(
       'npm',
       ['publish', '--access', 'public', '--tag', 'latest', '--dry-run'],
       {
-        cwd: path.join(process.cwd(), core.getInput('working-directory'), 'dist'),
+        cwd: '/dist',
         stdio: 'inherit'
       }
     );
@@ -117,7 +115,7 @@ describe('npmPublish', () => {
 
   it('should handle errors', async (done: DoneFn) => {
     spawnSpy.and.throwError('Something bad happened.');
-    await npmPublish();
+    await npmPublish('/dist');
     expect(failedLogSpy).toHaveBeenCalledWith('Something bad happened.');
     expect(failedLogSpy).toHaveBeenCalledWith('`foo-package@1.2.3` failed to publish to NPM.');
     expect(slackSpy).toHaveBeenCalledWith('`foo-package@1.2.3` failed to publish to NPM.');
@@ -127,7 +125,7 @@ describe('npmPublish', () => {
   it('should not notify Slack of errors if `--dry-run`', async (done: DoneFn) => {
     mockNpmDryRun = 'true';
     spawnSpy.and.throwError('Something bad happened.');
-    await npmPublish();
+    await npmPublish('/dist');
     expect(failedLogSpy).toHaveBeenCalledWith('Something bad happened.');
     expect(failedLogSpy).toHaveBeenCalledWith('`foo-package@1.2.3` failed to publish to NPM.');
     expect(slackSpy).not.toHaveBeenCalled();

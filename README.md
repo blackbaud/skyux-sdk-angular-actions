@@ -1,9 +1,9 @@
-# @skyux-sdk/actions
+# @skyux-sdk/angular-actions
 
 ## Usage
 
 ```
-- uses: blackbaud/skyux-sdk-actions@master
+- uses: blackbaud/skyux-sdk-angular-actions@master
   with:
     browser-stack-access-key: ${{ secrets.BROWSER_STACK_ACCESS_KEY }}
     browser-stack-username: ${{ secrets.BROWSER_STACK_USERNAME }}
@@ -20,5 +20,5 @@ You may append `[ci skip]` to the commit message (or pull request title when squ
 ## Build
 
 ```
-npm run build && npm run pack
+npm run build
 ```
