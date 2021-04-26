@@ -54,6 +54,7 @@ async function installCerts(): Promise<void> {
   try {
     await spawn('npx', ['-p', '@skyux-sdk/cli', 'skyux', 'certs', 'install']);
   } catch (err) {
+    console.error('[SKY UX ERROR]:', err);
     core.setFailed('SSL certificates installation failed.');
     process.exit(1);
   }
@@ -64,7 +65,8 @@ async function install(): Promise<void> {
     await spawn('npm', ['ci']);
     await spawn('npm', ['install', '--no-save', '--no-package-lock', 'blackbaud/skyux-sdk-pipeline-settings']);
   } catch (err) {
-    core.setFailed('Pipeline settings installation failed.');
+    console.error('[SKY UX ERROR]:', err);
+    core.setFailed('Packages installation failed.');
     process.exit(1);
   }
 }
@@ -74,7 +76,8 @@ async function build() {
     await runLifecycleHook('hook-before-script');
     await runAngularCliCommand('build', ['--prod']);
   } catch (err) {
-    core.setFailed(err);
+    console.error('[SKY UX ERROR]:', err);
+    core.setFailed('Build failed.');
     process.exit(1);
   }
 }
@@ -91,6 +94,7 @@ async function coverage(projectName: string) {
       '--skyux-ci-platform', 'gh-actions'
     ]);
   } catch (err) {
+    console.error('[SKY UX ERROR]:', err);
     core.setFailed('Code coverage failed.');
     process.exit(1);
   }
@@ -112,6 +116,7 @@ async function visual() {
     if (isPullRequest()) {
       await checkNewFailureScreenshots(BUILD_ID);
     }
+    console.error('[SKY UX ERROR]:', err);
     core.setFailed('End-to-end tests failed.');
     process.exit(1);
   }
@@ -122,6 +127,7 @@ async function buildLibrary(projectName: string) {
     await runAngularCliCommand('build', [projectName, '--prod']);
     await runLifecycleHook('hook-after-build-public-library-success');
   } catch (err) {
+    console.error('[SKY UX ERROR]:', err);
     core.setFailed('Library build failed.');
     process.exit(1);
   }
