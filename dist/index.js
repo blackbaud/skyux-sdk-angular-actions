@@ -1061,9 +1061,8 @@ const path = __webpack_require__(622);
 const notify_slack_1 = __webpack_require__(564);
 const spawn_1 = __webpack_require__(820);
 const utils_1 = __webpack_require__(611);
-function npmPublish() {
+function npmPublish(distPath) {
     return __awaiter(this, void 0, void 0, function* () {
-        const distPath = path.join(process.cwd(), core.getInput('working-directory'), 'dist');
         const packageJsonPath = path.join(distPath, 'package.json');
         const packageJson = fs.readJsonSync(packageJsonPath);
         const packageName = packageJson.name;
@@ -2398,9 +2397,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __webpack_require__(470);
+const fs = __webpack_require__(226);
 const path = __webpack_require__(622);
 const npm_publish_1 = __webpack_require__(96);
-const run_skyux_command_1 = __webpack_require__(495);
+const run_cli_command_1 = __webpack_require__(221);
 const screenshot_comparator_1 = __webpack_require__(453);
 const spawn_1 = __webpack_require__(820);
 const utils_1 = __webpack_require__(611);
@@ -2432,7 +2432,7 @@ function runLifecycleHook(name) {
 function installCerts() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            yield run_skyux_command_1.runSkyUxCommand('certs', ['install']);
+            yield spawn_1.spawn('npx', ['-p', '@skyux-sdk/cli', 'skyux', 'certs', 'install']);
         }
         catch (err) {
             console.error('[SKY UX ERROR]:', err);
@@ -2445,7 +2445,7 @@ function install() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield spawn_1.spawn('npm', ['ci']);
-            yield spawn_1.spawn('npm', ['install', '--no-save', '--no-package-lock', 'blackbaud/skyux-sdk-builder-config']);
+            yield spawn_1.spawn('npm', ['install', '--no-save', '--no-package-lock', 'blackbaud/skyux-sdk-pipeline-settings']);
         }
         catch (err) {
             console.error('[SKY UX ERROR]:', err);
@@ -2458,7 +2458,7 @@ function build() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield runLifecycleHook('hook-before-script');
-            yield run_skyux_command_1.runSkyUxCommand('build');
+            yield run_cli_command_1.runAngularCliCommand('build', ['--prod']);
         }
         catch (err) {
             console.error('[SKY UX ERROR]:', err);
@@ -2467,12 +2467,17 @@ function build() {
         }
     });
 }
-function coverage(configKey) {
+function coverage(projectName) {
     return __awaiter(this, void 0, void 0, function* () {
         core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-coverage`);
         try {
             yield runLifecycleHook('hook-before-script');
-            yield run_skyux_command_1.runSkyUxCommand('test', ['--coverage', 'library'], configKey);
+            yield run_cli_command_1.runAngularCliCommand('test', [
+                projectName,
+                '--browsers', 'ChromeHeadless',
+                '--no-watch',
+                '--skyux-ci-platform', 'gh-actions'
+            ]);
         }
         catch (err) {
             console.error('[SKY UX ERROR]:', err);
@@ -2481,13 +2486,13 @@ function coverage(configKey) {
         }
     });
 }
-function visual(configKey) {
+function visual() {
     return __awaiter(this, void 0, void 0, function* () {
         core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-visual`);
         const repository = process.env.GITHUB_REPOSITORY || '';
         try {
             yield runLifecycleHook('hook-before-script');
-            yield run_skyux_command_1.runSkyUxCommand('e2e', [], configKey);
+            yield run_cli_command_1.runAngularCliCommand('e2e', ['--skyux-ci-platform', 'gh-actions']);
             if (utils_1.isPush()) {
                 yield screenshot_comparator_1.checkNewBaselineScreenshots(repository, BUILD_ID);
             }
@@ -2502,10 +2507,10 @@ function visual(configKey) {
         }
     });
 }
-function buildLibrary() {
+function buildLibrary(projectName) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            yield run_skyux_command_1.runSkyUxCommand('build-public-library');
+            yield run_cli_command_1.runAngularCliCommand('build', [projectName, '--prod']);
             yield runLifecycleHook('hook-after-build-public-library-success');
         }
         catch (err) {
@@ -2515,9 +2520,10 @@ function buildLibrary() {
         }
     });
 }
-function publishLibrary() {
+function publishLibrary(projectName) {
     return __awaiter(this, void 0, void 0, function* () {
-        npm_publish_1.npmPublish();
+        const distPath = __webpack_require__.ab + "skyux-sdk-angular-actions/" + core.getInput('working-directory') + '/dist/' + projectName;
+        npm_publish_1.npmPublish(distPath);
     });
 }
 function run() {
@@ -2537,28 +2543,41 @@ function run() {
         core.exportVariable('BROWSER_STACK_ACCESS_KEY', core.getInput('browser-stack-access-key'));
         core.exportVariable('BROWSER_STACK_USERNAME', core.getInput('browser-stack-username'));
         core.exportVariable('BROWSER_STACK_PROJECT', core.getInput('browser-stack-project') || process.env.GITHUB_REPOSITORY);
-        let configKey = "gh-actions" /* GitHubActions */;
         if (!core.getInput('browser-stack-access-key')) {
             core.warning('BrowserStack credentials could not be found. ' +
                 'Tests will run through the local instance of ChromeHeadless.');
-            configKey = "none" /* None */;
         }
+        const angularJson = fs.readJsonSync(path.join(process.cwd(), core.getInput('working-directory'), 'angular.json'));
+        let projectName = '';
+        Object.keys(angularJson.projects).find(key => {
+            if (angularJson.projects[key].projectType === 'library') {
+                projectName = key;
+                return true;
+            }
+        });
         yield install();
         yield installCerts();
         // Don't run tests for tags.
         if (utils_1.isTag()) {
-            yield buildLibrary();
-            yield publishLibrary();
+            yield buildLibrary(projectName);
+            yield publishLibrary(projectName);
         }
         else {
             yield build();
-            yield coverage(configKey);
-            yield visual(configKey);
-            yield buildLibrary();
+            yield coverage(projectName);
+            yield visual();
+            yield buildLibrary(projectName);
         }
     });
 }
-run();
+(() => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield run();
+    }
+    catch (err) {
+        core.setFailed(err);
+    }
+}))();
 
 
 /***/ }),
@@ -2753,6 +2772,38 @@ module.exports = function xhrAdapter(config) {
     request.send(requestData);
   });
 };
+
+
+/***/ }),
+
+/***/ 221:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.runAngularCliCommand = void 0;
+const core = __webpack_require__(470);
+const spawn_1 = __webpack_require__(820);
+/**
+ *
+ * @param command The Angular CLI command to execute.
+ * @param args Any command line arguments.
+ * @param platformConfigKey The name of the CI platform config to use.
+ */
+function runAngularCliCommand(command, args = []) {
+    core.info(`
+=====================================================
+> Running Angular CLI command: '${command}'
+=====================================================
+`);
+    return spawn_1.spawn('npx', [
+        '-p', '@angular/cli',
+        'ng', command,
+        ...args
+    ]);
+}
+exports.runAngularCliCommand = runAngularCliCommand;
 
 
 /***/ }),
@@ -6203,7 +6254,7 @@ function commitFailureScreenshots(buildId) {
         yield spawn_1.spawn('git', ['commit', '--message', `Build #${buildId}: Added new failure screenshots. [ci skip]`], config);
         yield spawn_1.spawn('git', ['push', '--force', '--quiet', 'origin', branch], config);
         const url = repoUrl.split('@')[1].replace('.git', '');
-        core.setFailed(`SKY UX visual test failure!\nScreenshots may be viewed at: https://${url}/tree/${branch}`);
+        core.setFailed(`Visual test failure!\nScreenshots may be viewed at: https://${url}/tree/${branch}`);
         process.exit(1);
     });
 }
@@ -7047,46 +7098,6 @@ function resolveCommand(parsed) {
 }
 
 module.exports = resolveCommand;
-
-
-/***/ }),
-
-/***/ 495:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.runSkyUxCommand = void 0;
-const core = __webpack_require__(470);
-const spawn_1 = __webpack_require__(820);
-/**
- *
- * @param command The SKY UX CLI command to execute.
- * @param args Any command line arguments.
- * @param platformConfigKey The name of the CI platform config to use.
- */
-function runSkyUxCommand(command, args = [], platform = "gh-actions" /* GitHubActions */) {
-    core.info(`
-=====================================================
-> Running SKY UX command: '${command}'
-=====================================================
-`);
-    if (platform === "none" /* None */) {
-        // Run `ChromeHeadless` since it comes pre-installed on the CI machine.
-        args.push('--headless');
-    }
-    else {
-        args.push('--platform', platform);
-    }
-    return spawn_1.spawn('npx', [
-        '-p', '@skyux-sdk/cli',
-        'skyux', command,
-        '--logFormat', 'none',
-        ...args
-    ]);
-}
-exports.runSkyUxCommand = runSkyUxCommand;
 
 
 /***/ }),
@@ -8594,13 +8605,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifySlack = void 0;
 const core = __webpack_require__(470);
-const slack = __webpack_require__(736);
+const webhook_1 = __webpack_require__(736);
 function notifySlack(message) {
     return __awaiter(this, void 0, void 0, function* () {
         const url = core.getInput('slack-webhook');
         if (url) {
             core.info('Notifying Slack.');
-            const webhook = new slack.IncomingWebhook(url);
+            const webhook = new webhook_1.IncomingWebhook(url);
             yield webhook.send({
                 text: message
             });

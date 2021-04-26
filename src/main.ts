@@ -1,17 +1,14 @@
 import * as core from '@actions/core';
+import * as fs from 'fs-extra';
 import * as path from 'path';
-
-import {
-  SkyUxCIPlatformConfig
-} from './ci-platform-config';
 
 import {
   npmPublish
 } from './npm-publish';
 
 import {
-  runSkyUxCommand
-} from './run-skyux-command';
+  runAngularCliCommand
+} from './run-cli-command';
 
 import {
   checkNewBaselineScreenshots,
@@ -55,7 +52,7 @@ async function runLifecycleHook(name: string) {
 
 async function installCerts(): Promise<void> {
   try {
-    await runSkyUxCommand('certs', ['install']);
+    await spawn('npx', ['-p', '@skyux-sdk/cli', 'skyux', 'certs', 'install']);
   } catch (err) {
     console.error('[SKY UX ERROR]:', err);
     core.setFailed('SSL certificates installation failed.');
@@ -66,7 +63,7 @@ async function installCerts(): Promise<void> {
 async function install(): Promise<void> {
   try {
     await spawn('npm', ['ci']);
-    await spawn('npm', ['install', '--no-save', '--no-package-lock', 'blackbaud/skyux-sdk-builder-config']);
+    await spawn('npm', ['install', '--no-save', '--no-package-lock', 'blackbaud/skyux-sdk-pipeline-settings']);
   } catch (err) {
     console.error('[SKY UX ERROR]:', err);
     core.setFailed('Packages installation failed.');
@@ -77,7 +74,7 @@ async function install(): Promise<void> {
 async function build() {
   try {
     await runLifecycleHook('hook-before-script');
-    await runSkyUxCommand('build');
+    await runAngularCliCommand('build', ['--prod']);
   } catch (err) {
     console.error('[SKY UX ERROR]:', err);
     core.setFailed('Build failed.');
@@ -85,11 +82,17 @@ async function build() {
   }
 }
 
-async function coverage(configKey: SkyUxCIPlatformConfig) {
+async function coverage(projectName: string) {
   core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-coverage`);
+
   try {
     await runLifecycleHook('hook-before-script');
-    await runSkyUxCommand('test', ['--coverage', 'library'], configKey);
+    await runAngularCliCommand('test', [
+      projectName,
+      '--browsers', 'ChromeHeadless',
+      '--no-watch',
+      '--skyux-ci-platform', 'gh-actions'
+    ]);
   } catch (err) {
     console.error('[SKY UX ERROR]:', err);
     core.setFailed('Code coverage failed.');
@@ -97,12 +100,15 @@ async function coverage(configKey: SkyUxCIPlatformConfig) {
   }
 }
 
-async function visual(configKey: SkyUxCIPlatformConfig) {
+async function visual() {
   core.exportVariable('BROWSER_STACK_BUILD_ID', `${BUILD_ID}-visual`);
+
   const repository = process.env.GITHUB_REPOSITORY || '';
+
   try {
     await runLifecycleHook('hook-before-script');
-    await runSkyUxCommand('e2e', [], configKey);
+    await runAngularCliCommand('e2e', ['--skyux-ci-platform', 'gh-actions']);
+
     if (isPush()) {
       await checkNewBaselineScreenshots(repository, BUILD_ID);
     }
@@ -116,9 +122,9 @@ async function visual(configKey: SkyUxCIPlatformConfig) {
   }
 }
 
-async function buildLibrary() {
+async function buildLibrary(projectName: string) {
   try {
-    await runSkyUxCommand('build-public-library');
+    await runAngularCliCommand('build', [projectName, '--prod']);
     await runLifecycleHook('hook-after-build-public-library-success');
   } catch (err) {
     console.error('[SKY UX ERROR]:', err);
@@ -127,8 +133,15 @@ async function buildLibrary() {
   }
 }
 
-async function publishLibrary() {
-  npmPublish();
+async function publishLibrary(projectName: string) {
+  const distPath = path.join(
+    process.cwd(),
+    core.getInput('working-directory'),
+    'dist',
+    projectName
+  );
+
+  npmPublish(distPath);
 }
 
 async function run(): Promise<void> {
@@ -150,28 +163,42 @@ async function run(): Promise<void> {
   core.exportVariable('BROWSER_STACK_USERNAME', core.getInput('browser-stack-username'));
   core.exportVariable('BROWSER_STACK_PROJECT', core.getInput('browser-stack-project') || process.env.GITHUB_REPOSITORY);
 
-  let configKey = SkyUxCIPlatformConfig.GitHubActions;
   if (!core.getInput('browser-stack-access-key')) {
     core.warning(
       'BrowserStack credentials could not be found. ' +
       'Tests will run through the local instance of ChromeHeadless.'
     );
-    configKey = SkyUxCIPlatformConfig.None;
   }
+
+  const angularJson = fs.readJsonSync(path.join(process.cwd(), core.getInput('working-directory'), 'angular.json'));
+
+  let projectName: string = '';
+  Object.keys(angularJson.projects).find(key => {
+    if (angularJson.projects[key].projectType === 'library') {
+      projectName = key;
+      return true;
+    }
+  });
 
   await install();
   await installCerts();
 
   // Don't run tests for tags.
   if (isTag()) {
-    await buildLibrary();
-    await publishLibrary();
+    await buildLibrary(projectName);
+    await publishLibrary(projectName);
   } else {
     await build();
-    await coverage(configKey);
-    await visual(configKey);
-    await buildLibrary();
+    await coverage(projectName);
+    await visual();
+    await buildLibrary(projectName);
   }
 }
 
-run();
+(async () => {
+  try {
+    await run();
+  } catch (err) {
+    core.setFailed(err);
+  }
+})();

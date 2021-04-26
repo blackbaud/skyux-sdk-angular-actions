@@ -14,8 +14,7 @@ import {
   getTag
 } from './utils';
 
-export async function npmPublish() {
-  const distPath = path.join(process.cwd(), core.getInput('working-directory'), 'dist');
+export async function npmPublish(distPath: string) {
   const packageJsonPath = path.join(distPath, 'package.json');
 
   const packageJson = fs.readJsonSync(packageJsonPath);
